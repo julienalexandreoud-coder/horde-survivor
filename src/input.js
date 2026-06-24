@@ -3,7 +3,6 @@ export class Input {
         this._keys = new Map();
         this._pressedThisFrame = new Set();
         this._releasedThisFrame = new Set();
-        this._previouslyDown = new Set();
 
         this.mouseX = 0;
         this.mouseY = 0;
@@ -19,23 +18,23 @@ export class Input {
     }
 
     _onKeyDown(e) {
-        const key = e.key;
-        if (!this._keys.get(key)) {
-            this._pressedThisFrame.add(key);
+        if (!this._keys.get(e.code)) {
+            this._pressedThisFrame.add(e.code);
+            this._pressedThisFrame.add(e.key);
         }
-        this._keys.set(key, true);
-        this._previouslyDown.add(key);
+        this._keys.set(e.code, true);
+        this._keys.set(e.key, true);
 
-        if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(key)) {
+        if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(e.key)) {
             e.preventDefault();
         }
     }
 
     _onKeyUp(e) {
-        const key = e.key;
-        this._keys.set(key, false);
-        this._previouslyDown.delete(key);
-        this._releasedThisFrame.add(key);
+        this._keys.set(e.code, false);
+        this._keys.set(e.key, false);
+        this._releasedThisFrame.add(e.code);
+        this._releasedThisFrame.add(e.key);
     }
 
     _onMouseMove(e) {
@@ -47,50 +46,30 @@ export class Input {
         this.mouseMoved = true;
     }
 
-    isDown(key) {
-        return !!this._keys.get(key);
-    }
-
-    isPressed(key) {
-        return this._pressedThisFrame.has(key);
-    }
-
-    wasReleased(key) {
-        return this._releasedThisFrame.has(key);
-    }
+    isDown(key) { return !!this._keys.get(key); }
+    isPressed(key) { return this._pressedThisFrame.has(key); }
+    wasReleased(key) { return this._releasedThisFrame.has(key); }
 
     getDirection() {
-        let x = 0;
-        let y = 0;
-
-        if (this.isDown('w') || this.isDown('W') || this.isDown('ArrowUp')) y -= 1;
-        if (this.isDown('s') || this.isDown('S') || this.isDown('ArrowDown')) y += 1;
-        if (this.isDown('a') || this.isDown('A') || this.isDown('ArrowLeft')) x -= 1;
-        if (this.isDown('d') || this.isDown('D') || this.isDown('ArrowRight')) x += 1;
-
-        const length = Math.sqrt(x * x + y * y);
-        if (length > 0) {
-            x /= length;
-            y /= length;
-        }
-
+        let x = 0, y = 0;
+        if (this.isDown('KeyW') || this.isDown('ArrowUp')) y -= 1;
+        if (this.isDown('KeyS') || this.isDown('ArrowDown')) y += 1;
+        if (this.isDown('KeyA') || this.isDown('ArrowLeft')) x -= 1;
+        if (this.isDown('KeyD') || this.isDown('ArrowRight')) x += 1;
+        const len = Math.sqrt(x * x + y * y);
+        if (len > 0) { x /= len; y /= len; }
         return { x, y };
     }
 
     getAimAngle(playerX, playerY) {
-        if (!this.mouseMoved) {
-            return null;
-        }
+        if (!this.mouseMoved) return null;
         const dx = this.mouseX - playerX;
         const dy = this.mouseY - playerY;
         return Math.atan2(dy, dx);
     }
 
     getMouseWorldPos(camera) {
-        return {
-            x: this.mouseX + camera.x,
-            y: this.mouseY + camera.y,
-        };
+        return { x: this.mouseX + camera.x, y: this.mouseY + camera.y };
     }
 
     update() {
