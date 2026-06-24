@@ -1,0 +1,9 @@
+{
+  "name": "horde-survivor",
+  "version": "1.0.0",
+  "description": "A bullet heaven browser game for CrazyGames",
+  "private": true,
+  "scripts": {
+    "dev": "npx serve . -p 3000 --cors"
+  }
+}
