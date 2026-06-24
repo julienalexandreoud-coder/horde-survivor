@@ -47,7 +47,7 @@ export class Player {
         this._time = 0;
     }
 
-    update(dt, input, worldSize, enemies) {
+    update(dt, input, worldSize, enemies, camera) {
         if (!this.alive) return;
 
         this._time += dt;
@@ -64,7 +64,7 @@ export class Player {
         if (this.x + this.radius > worldSize.width) this.x = worldSize.width - this.radius;
         if (this.y + this.radius > worldSize.height) this.y = worldSize.height - this.radius;
 
-        const aimAngle = input.getAimAngle(this.x, this.y);
+        const aimAngle = input.getAimAngle(this.x, this.y, camera);
         if (aimAngle !== null) {
             this.aimAngle = aimAngle;
         } else if (enemies && enemies.length > 0) {

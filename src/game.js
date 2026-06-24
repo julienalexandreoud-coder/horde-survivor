@@ -24,7 +24,7 @@ export class Game {
         this.canvas = canvas;
         this.state = GAME_STATES.LOADING;
         this.renderer = new Renderer(canvas);
-        this.input = new Input();
+        this.input = new Input(canvas);
         this.worldWidth = CANVAS_WIDTH * WORLD_MULTIPLIER;
         this.worldHeight = CANVAS_HEIGHT * WORLD_MULTIPLIER;
         this.camera = { x: 0, y: 0 };
@@ -172,7 +172,7 @@ export class Game {
 
         const activeEnemies = this.pool.getActiveEnemies();
         const worldSize = { width: this.worldWidth, height: this.worldHeight };
-        this.player.update(dt, this.input, worldSize, activeEnemies);
+        this.player.update(dt, this.input, worldSize, activeEnemies, this.camera);
 
         if (!this.player.isAlive()) {
             this._onPlayerDeath();
