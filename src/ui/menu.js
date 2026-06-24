@@ -43,61 +43,57 @@ export class MainMenu {
   _drawBackground(w, h) {
     const ctx = this.renderer.ctx;
     const grad = ctx.createLinearGradient(0, 0, 0, h);
-    grad.addColorStop(0, '#0a0820');
-    grad.addColorStop(0.5, '#0f0f30');
-    grad.addColorStop(1, '#141440');
+    grad.addColorStop(0, '#0a0a2e');
+    grad.addColorStop(0.5, '#16213e');
+    grad.addColorStop(1, '#1a1a2e');
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, w, h);
 
-    for (let i = 0; i < 20; i++) {
+    for (let i = 0; i < 30; i++) {
       const y = Math.floor(Math.random() * h);
       const x = Math.floor(Math.random() * w);
-      ctx.fillStyle = `rgba(255,255,255,${0.02 + Math.random() * 0.04})`;
+      ctx.fillStyle = `rgba(255,255,255,${0.03 + Math.random() * 0.06})`;
       ctx.fillRect(x, y, 2, 2);
     }
   }
 
   _drawTitle(cx, h) {
     const titleY = Math.floor(h * 0.22);
-    const pulse = 1 + Math.sin(this.time * 2) * 0.03;
+    const ctx = this.renderer.ctx;
 
-    this.renderer.text(cx + 3, titleY + 3, 'HORDE SURVIVOR', {
-      fontSize: Math.floor(52 * pulse),
-      fillStyle: COLORS.glowYellow,
-      textAlign: 'center',
-      textBaseline: 'middle',
-    });
-
-    this.renderer.text(cx, titleY, 'HORDE SURVIVOR', {
-      fontSize: Math.floor(52 * pulse),
-      fillStyle: COLORS.title,
-      textAlign: 'center',
-      textBaseline: 'middle',
-    });
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 52px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.shadowColor = 'rgba(0,212,255,0.4)';
+    ctx.shadowBlur = 16;
+    ctx.fillText('HORDE SURVIVOR', cx, titleY);
+    ctx.shadowBlur = 0;
+    ctx.fillText('HORDE SURVIVOR', cx, titleY);
   }
 
   _drawSubtitle(cx, h) {
     const subY = Math.floor(h * 0.34);
     this.renderer.text(cx, subY, 'A Bullet Heaven Game', {
       fontSize: 18,
-      fillStyle: COLORS.whiteAlpha,
+      fillStyle: 'rgba(255,255,255,0.7)',
       textAlign: 'center',
     });
   }
 
   _drawPrompt(cx, h) {
     const promptY = Math.floor(h * 0.52);
-    const alpha = 0.4 + Math.sin(this.time * 3) * 0.35;
+    const alpha = 0.5 + Math.sin(this.time * 3) * 0.4;
 
     this.renderer.text(cx, promptY, 'Press SPACE to Play', {
       fontSize: 22,
-      fillStyle: `rgba(255, 255, 255, ${Math.max(0, Math.min(1, alpha))})`,
+      fillStyle: `rgba(255, 255, 255, ${Math.max(0.1, alpha)})`,
       textAlign: 'center',
     });
 
-    this.renderer.text(cx, promptY + 30, 'Press S for Shop', {
-      fontSize: 16,
-      fillStyle: `rgba(255, 255, 255, ${Math.max(0, Math.min(0.75, alpha - 0.15))})`,
+    this.renderer.text(cx, promptY + 32, 'Press S for Shop', {
+      fontSize: 15,
+      fillStyle: `rgba(255, 255, 255, ${Math.max(0.1, alpha - 0.2)})`,
       textAlign: 'center',
     });
   }
@@ -107,7 +103,7 @@ export class MainMenu {
     const coins = coinBalance || 0;
     this.renderer.text(cx, coinY, `Coins: ${coins}`, {
       fontSize: 20,
-      fillStyle: COLORS.gold,
+      fillStyle: '#ffd700',
       textAlign: 'center',
     });
   }
@@ -121,7 +117,7 @@ export class MainMenu {
 
     this.renderer.text(cx, statsY, `Best: Wave ${stats.wave} | Kills: ${stats.kills} | Time: ${mins}:${secs}`, {
       fontSize: 14,
-      fillStyle: COLORS.mutedLight,
+      fillStyle: 'rgba(255,255,255,0.5)',
       textAlign: 'center',
     });
   }
@@ -130,7 +126,7 @@ export class MainMenu {
     const ctrlY = Math.floor(h * 0.88);
     this.renderer.text(cx, ctrlY, 'WASD to move | Mouse to aim', {
       fontSize: 12,
-      fillStyle: COLORS.muted,
+      fillStyle: 'rgba(255,255,255,0.35)',
       textAlign: 'center',
     });
   }
