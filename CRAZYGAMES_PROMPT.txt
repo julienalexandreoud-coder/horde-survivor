@@ -1,0 +1,302 @@
+# CRAZYGAMES GAME PROMPT TEMPLATE
+# Use this to generate a monetizable HTML5 game ready for CrazyGames submission.
+
+---
+
+## GAME CONCEPT
+- **Genre**: [hypercasual / puzzle / action / idle / .io / driving / simulation]
+- **Core loop**: [what the player does every 1-5 minutes, e.g. "catch fish, sell, upgrade, repeat"]
+- **Session length**: 3-8 minutes per run (ideal for web)
+- **Controls**: keyboard + mouse (WASD + click). Touch optional for mobile.
+- **Art style**: flat vector cartoon, bold outlines, consistent resolution, all PNG with transparency
+
+---
+
+## TECHNICAL REQUIREMENTS
+
+### File size (CRITICAL for review)
+- **Initial download ≤ 50MB** (measured between load start and first gameplayStart() call)
+- **Total bundle ≤ 250MB** with SDK, ≤ 50MB without
+- **File count ≤ 1500**
+- **Target ≤ 20MB initial** to qualify for mobile homepage
+
+### Browser compatibility
+- Must work on **Chrome + Edge** (Safari tested, disabled if broken)
+- Must support **Chromebook / 4GB RAM** devices
+- Use only **relative paths** for all assets (never absolute)
+- Add to CSS body: `user-select: none; -webkit-user-select: none`
+
+### Frame rate
+- Physics must be **frame-rate independent** (use deltaTime * speed, not fixed increments)
+- Test at 60Hz, 144Hz, 165Hz
+
+### Resolution
+- Canvas: 1280x720 or 960x540 (16:9)
+- Support responsive iframe sizes: 907x510, 1216x684, 800x450 (mobile)
+- Fullscreen 1920x1080 and 1366x768
+
+### Audio on iOS
+- AudioContext must be **resumed on user touch** after iOS backgrounding
+- Listen for `touchend` / `click` and call `audioContext.resume()`
+
+### Orientation
+- Games can be landscape or portrait (portrait gets black bars on desktop)
+- CrazyGames handles orientation locking — DO NOT implement custom lock
+
+---
+
+## SDK INTEGRATION (FULL LAUNCH)
+
+### Game module (REQUIRED)
+```js
+// Call when player enters playable state (not menu/loading)
+window.CrazyGames.SDK.game.gameplayStart()
+
+// Call when player leaves gameplay (pause, menu, death)
+window.CrazyGames.SDK.game.gameplayStop()
+
+// Call on special achievements (boss kill, milestone) — use sparingly
+window.CrazyGames.SDK.game.happytime()
+```
+
+### Advertisements (REQUIRED for monetization)
+```js
+// MIDGAME ADS: show between levels, after death, during transitions
+// NEVER during active gameplay
+// SDK auto-throttles (max 1 per 3 minutes) — request whenever logical
+window.CrazyGames.SDK.ad.requestAd('midgame', {
+    adStarted: () => { /* pause game + mute audio */ },
+    adFinished: () => { /* resume game + unmute audio */ },
+    adError: (err) => { /* resume game + unmute audio, DON'T freeze */ }
+})
+
+// REWARDED ADS: player CHOOSES to watch for bonus
+// Must be clearly optional — equal size skip button
+// Don't chain multiple ads for one reward
+// Don't place on active gameplay screen
+window.CrazyGames.SDK.ad.requestAd('rewarded', {
+    adFinished: () => { /* give reward */ },
+    adError: () => { /* DON'T give reward */ }
+})
+
+// BANNER ADS: only on screens open >5 seconds (menu, shop, upgrade)
+// Max 2 banners per screen, never during gameplay
+// Always clearly distinguishable from game UI
+window.CrazyGames.SDK.banner.requestBanner({ id: 'container-id', width: 300, height: 250 })
+```
+
+### Ad rules that will GET YOUR GAME REJECTED:
+- NO ads during active gameplay
+- NO deceptive ad triggers (fake buttons, delays)
+- NO chained ads (multiple rewarded for one reward)
+- NO blocking players with AdBlock from playing
+- NO rewarded ad buttons without effect when ads disabled
+- MUST pause game during video ads and mute game audio
+
+### Data module (REQUIRED for cloud saves)
+```js
+// Same API as localStorage
+await window.CrazyGames.SDK.data.setItem('key', value)
+const data = await window.CrazyGames.SDK.data.getItem('key')
+await window.CrazyGames.SDK.data.removeItem('key')
+```
+- Max 1MB stored data
+- Guest data auto-syncs to cloud when they log in
+- Rely FULLY on data module (not raw localStorage)
+
+### User / Account (REQUIRED for full launch)
+```js
+const user = await window.CrazyGames.SDK.user.getUser()
+// Returns null if not logged in — ALWAYS allow guest play
+// DO NOT use external login (Google, Facebook, email)
+// Use getUserToken() for server auth, NEVER decode on client
+```
+
+### Sitelock
+```js
+// Prevent game from running on other domains
+// Whitelist all CrazyGames domains
+```
+
+---
+
+## GAMEPLAY REQUIREMENTS
+
+### Onboarding (CRITICAL)
+- **Land in gameplay immediately** — max 1 click from page load
+- Onboarding during gameplay, not separate
+- Show controls as keyboard/mouse overlay (not walls of text)
+- **Make onboarding skippable**
+- Focus on core loop only, don't explain every feature
+
+### PEGI 12 compliance
+- No gore, realistic violence, gambling, alcohol, drugs
+- No sexual content or suggestive themes
+- Loot boxes must disclose probabilities
+- Loot boxes banned in Belgium, China, Netherlands, Serbia, Slovakia
+
+### Language
+- **English localization REQUIRED**
+- Use user's language from SDK `systemInfo.locale` if translations available
+- Translation must be high quality
+
+### UI/UX
+- All content readable at devicePixelRatio:1 on all iframe sizes
+- Buttons clearly labeled, reasonable size
+- No button delays to encourage ad clicks (rejected)
+- Buttons not sized/placed to encourage misclicks (rejected)
+- No in-game fullscreen buttons (CrazyGames handles it)
+- No cross-promotion or external app store links in-game
+- Community links (Discord, website) allowed on menu only
+
+### Originality
+- Game name must be unique and searchable
+- No misleading names, icons, or screenshots
+- Don't use common identifiers unless you own the IP
+- Genres should not change after submission
+
+---
+
+## MULTIPLAYER (if applicable)
+
+### Required for Multiplayer landing page:
+- Pass room info via SDK: `sdk.game.updateRoom({ roomId, isJoinable, inviteParams })`
+- Handle join listener: `sdk.game.addJoinRoomListener(callback)`
+- Display CrazyGames usernames in-game
+- Keep rooms across rounds (no kicking after match)
+- Support `isInstantMultiplayer` flag (launch straight into game)
+- Chat must be moderatable (profanity filter or AI moderation)
+- DisableChat preference must be respected via `sdk.game.settings.disableChat`
+
+---
+
+## MONETIZATION STRATEGY
+
+### Ad placement examples:
+| Trigger | Ad type | Frequency |
+|---------|---------|-----------|
+| Between levels / after death | Midgame | Every 2-3 runs |
+| Revive / continue | Rewarded | Once per run |
+| Bonus coins / XP | Rewarded | Once per run |
+| Menu / shop screen | Banner | Persistent |
+| Upgrade screen | Banner | Persistent |
+
+### Revenue optimization:
+- Midgame ads at natural breaks (level complete, death)
+- Rewarded ads for meaningful rewards (revive, double coins)
+- Premium currency purchasable with ads
+- NEVER force ads — SDK handles frequency capping
+
+### Payouts:
+- €100 minimum threshold
+- Monthly payments via Tipalti
+- Wire transfer, ACH, PayPal, eCheck
+
+---
+
+## SUBMISSION PACKAGE
+
+### Required metadata:
+- Game name (unique, descriptive)
+- Game description (2-3 sentences)
+- Controls description (e.g. "WASD to move, click to interact")
+- Category / genre selection
+
+### Required game covers (3 sizes):
+| Type | Dimensions | Ratio |
+|------|-----------|-------|
+| Landscape | 1920x1080 | 16:9 |
+| Portrait | 800x1200 | 2:3 |
+| Square | 800x800 | 1:1 |
+
+**Cover rules:**
+- NO borders, NO "New" / "Play Now" / "Updated" text
+- NO store logos or icons
+- Game name ON the cover (nice font)
+- Consistent visuals across all 3 sizes
+- NOT just a screenshot — be creative, use characters/key art
+- Update covers seasonally or after major updates
+
+### Required preview video:
+- 15-20 seconds (cut at 20s automatically)
+- 50MB max file size
+- Landscape 1080p (16:9) + Portrait 1080p (2:3)
+- NO opening transitions, black screens, logos
+- NO "Play Now" text, default mouse cursor, or app store icons
+- NO fast-forward (CrazyGames auto-speeds slightly)
+- NO sound
+- Show most exciting gameplay moments
+
+---
+
+## LAUNCH PROCESS
+
+### Step 1: Basic Launch (soft launch)
+- SDK is **optional**
+- Ads are **disabled**, no revenue
+- Limited player exposure
+- Metrics gathered: playtime, retention, CTR, gameplay conversion
+
+### Step 2: Full Launch (after passing metrics)
+- SDK **required**
+- Ads **enabled**
+- Homepage visibility based on performance
+- Must pass: gameplay land-in ≤ 1 click, full SDK, PEGI 12
+
+---
+
+## QUALITY CHECKLIST (before submission)
+
+- [ ] Game loads and plays on Chrome + Edge
+- [ ] Total file size ≤ 250MB, initial ≤ 50MB
+- [ ] Content readable at all iframe sizes (907x510 to 1920x1080)
+- [ ] Physics consistent at 60/144/165Hz
+- [ ] English localization present and correct
+- [ ] Landing in gameplay immediately (≤ 1 click)
+- [ ] All text legible (no tiny fonts)
+- [ ] No crashes, freezes, or infinite loops
+- [ ] Ads at natural breaks only, not during gameplay
+- [ ] Rewarded ads optional with equal skip button
+- [ ] Game works even with adblocker
+- [ ] No external login requirements
+- [ ] Progress saved via data module
+- [ ] No cross-promotion or app store links
+- [ ] PEGI 12 compliant (no gore, gambling, sexual content)
+- [ ] Unique name and iconography
+- [ ] Consistent art style (no mix of realistic/cartoon)
+- [ ] 3 cover images + preview video ready
+- [ ] Sitelock implemented (if using)
+- [ ] Privacy policy if collecting personal data
+- [ ] Audio mutes during ads
+- [ ] Game pauses during ads
+
+---
+
+## CODE ARCHITECTURE TEMPLATE
+
+```
+game/
+├── index.html              # Entry point
+├── src/
+│   ├── main.js             # Bootstrap, SDK init, game start
+│   ├── game.js             # Main game loop, state machine
+│   ├── input.js            # Keyboard + mouse + touch handling
+│   ├── renderer.js         # Canvas 2D drawing utilities
+│   ├── audio.js            # Web Audio API manager
+│   ├── constants.js        # All tuning values, colors, config
+│   ├── entities/           # Player, enemies, items, projectiles
+│   ├── systems/            # Spawning, collision, physics, upgrades
+│   ├── ui/                 # HUD, menus, shop, game over screens
+│   ├── data/               # Game content definitions (levels, items)
+│   └── sdk/
+│       └── crazygames.js   # SDK wrapper with localStorage fallback
+└── assets/                 # Sprites, sounds (all PNG, all relative paths)
+```
+
+### Key patterns:
+- **Single source of truth** for entity arrays (use object pool, not scattered arrays)
+- **State machine** for game flow (LOADING → MENU → PLAYING → UPGRADING → DEAD)
+- **Delta time** for all movement: `position += velocity * dt`
+- **Try/catch** around all SDK calls — game must work without SDK on localhost
+- **localStorage fallback** for data module when SDK unavailable
+- **Adapter pattern** for renderer to support multiple calling conventions
