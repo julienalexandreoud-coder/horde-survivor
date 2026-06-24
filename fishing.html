@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Deep Catch</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#000;overflow:hidden;display:flex;justify-content:center;align-items:center;height:100vh;font-family:Arial,sans-serif;-webkit-user-select:none;user-select:none}
+canvas{display:block}
+#ui{position:absolute;top:10px;left:50%;transform:translateX(-50%);color:#fff;font-size:18px;text-align:center;pointer-events:none;text-shadow:0 2px 4px rgba(0,0,0,.7)}
+#shop-btn{position:absolute;top:10px;right:10px;padding:8px 16px;background:#ffd700;color:#000;border:none;border-radius:6px;font-size:14px;cursor:pointer;font-weight:bold}
+#shop-btn:hover{background:#ffed4a}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="ui"></div>
+<button id="shop-btn" style="display:none">Shop</button>
+
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+const W = 800, H = 600;
+canvas.width = W; canvas.height = H;
+function resize() {
+  const s = Math.min(window.innerWidth/W, window.innerHeight/H);
+  canvas.style.width = W*s+'px'; canvas.style.height = H*s+'px';
+}
+resize(); window.addEventListener('resize', resize);
+
+const images = {};
+const imgNames = {
+  boat:'assets/1.png', water:'assets/2.png',
+  fish1:'assets/3.png', fish2:'assets/4.png', fish3:'assets/5.png',
+  fish4:'assets/6.png', fish5:'assets/7.png', fish6:'assets/8.png',
+  hook:'assets/9.png', coin:'assets/10.png'
+};
+let loaded = 0, total = Object.keys(imgNames).length;
+Object.entries(imgNames).forEach(([k,v]) => {
+  const img = new Image();
+  img.onload = () => { loaded++; };
+  img.src = v;
+  images[k] = img;
+});
+
+const FISH = [
+  { name:'Sardine', img:'fish1', minW:0.2, maxW:1.5, value:3, rarity:'Common', speed:0.8, color:'#aabbcc' },
+  { name:'Trout', img:'fish2', minW:1, maxW:4, value:8, rarity:'Common', speed:1.0, color:'#88aa66' },
+  { name:'Bass', img:'fish3', minW:2, maxW:8, value:20, rarity:'Uncommon', speed:1.4, color:'#558844' },
+  { name:'Salmon', img:'fish4', minW:4, maxW:14, value:50, rarity:'Rare', speed:1.9, color:'#ff8844' },
+  { name:'Pufferfish', img:'fish5', minW:3, maxW:10, value:70, rarity:'Rare', speed:1.6, color:'#ffcc22' },
+  { name:'Shark', img:'fish6', minW:10, maxW:35, value:200, rarity:'Legendary', speed:2.5, color:'#6688aa' },
+];
+
+let coins = parseInt(localStorage.getItem('fc_coins')||'50');
+let bestCatch = parseFloat(localStorage.getItem('fc_best')||'0');
+let upgrades = JSON.parse(localStorage.getItem('fc_ups')||'{"rod":0,"line":0,"lure":0}');
+
+const state = { IDLE:0, CASTING:1, WAITING:2, BITING:3, REELING:4, CAUGHT:5, SHOP:6 };
+let gs = state.IDLE;
+let hookY = 100, hookV = 0, hookLineLen = 100;
+let maxDepth = 280 + upgrades.rod * 40;
+let reelPower = 120 + upgrades.line * 25;
+let rareChance = 0.1 + upgrades.lure * 0.08;
+let activeFish = null, catchProgress = 0, reelRequired = 0;
+let waitTimer = 0, biteTimer = 0, shakeTimer = 0, shakeAmt = 0;
+let particles = [];
+let caughtFish = null;
+let castX = 0;
+let waterOffset = 0;
+let lastClick = 0, clickRate = 0;
+
+function getRarityRoll() {
+  const r = Math.random();
+  if (r < rareChance * 0.3) return FISH[5]; // legendary
+  if (r < rareChance) return FISH[3 + Math.floor(Math.random()*2)]; // rare
+  if (r < rareChance * 3) return FISH[2]; // uncommon
+  return FISH[Math.floor(Math.random()*2)]; // common
+}
+
+function spawnParticles(x, y, count, color) {
+  for (let i = 0; i < count; i++) {
+    particles.push({
+      x, y, vx: (Math.random()-.5)*120, vy: (Math.random()-.5)*120-60,
+      life: 0.5+Math.random()*0.5, maxLife: 0.5+Math.random()*0.5, color, size: 2+Math.random()*3
+    });
+  }
+}
+
+canvas.addEventListener('mousedown', e => {
+  const rect = canvas.getBoundingClientRect();
+  const mx = (e.clientX - rect.left) * (W/rect.width);
+  if (gs === state.IDLE) {
+    castX = mx;
+    gs = state.CASTING;
+    hookY = 60; hookV = 4; hookLineLen = 60;
+    catchProgress = 0; activeFish = null; caughtFish = null;
+    document.getElementById('shop-btn').style.display = 'none';
+    document.getElementById('ui').textContent = '';
+  } else if (gs === state.BITING) {
+    gs = state.REELING;
+    catchProgress = 0;
+    reelRequired = 30 + activeFish.speed * 15;
+    biteTimer = 0;
+  } else if (gs === state.REELING) {
+    const now = Date.now();
+    clickRate = now - lastClick < 200 ? (clickRate || 0) + 1 : 1;
+    lastClick = now;
+    catchProgress += (reelPower / 100);
+    spawnParticles(canvas.width/2, hookY, 2, '#fff');
+    if (clickRate > 5) spawnParticles(canvas.width/2, hookY, 4, '#ffd700');
+  } else if (gs === state.CAUGHT) {
+    coins += caughtFish.value;
+    saveData();
+    gs = state.IDLE;
+    caughtFish = null;
+    document.getElementById('shop-btn').style.display = 'block';
+  }
+});
+
+canvas.addEventListener('mousemove', e => {
+  if (gs === state.IDLE) {
+    const rect = canvas.getBoundingClientRect();
+    castX = (e.clientX - rect.left) * (W/rect.width);
+  }
+});
+
+document.getElementById('shop-btn').addEventListener('click', () => {
+  gs = gs === state.SHOP ? state.IDLE : state.SHOP;
+});
+
+function saveData() {
+  localStorage.setItem('fc_coins', coins);
+  localStorage.setItem('fc_best', bestCatch);
+  localStorage.setItem('fc_ups', JSON.stringify(upgrades));
+}
+
+const SHOP_ITEMS = [
+  { id:'rod', name:'Longer Rod', desc:'Cast deeper water', cost:lvl=>50+lvl*40, max:5 },
+  { id:'line', name:'Stronger Line', desc:'Reel in faster', cost:lvl=>60+lvl*50, max:5 },
+  { id:'lure', name:'Better Lure', desc:'Attract rarer fish', cost:lvl=>80+lvl*70, max:5 },
+];
+
+function buy(id) {
+  const item = SHOP_ITEMS.find(i=>i.id===id);
+  const lvl = upgrades[id]||0;
+  if (lvl >= item.max) return;
+  const cost = item.cost(lvl);
+  if (coins >= cost) { coins -= cost; upgrades[id] = lvl+1; saveData(); maxDepth = 280+upgrades.rod*40; reelPower = 120+upgrades.line*25; rareChance = 0.1+upgrades.lure*0.08; }
+}
+
+function update(dt) {
+  waterOffset += dt * 20;
+  for (let i = particles.length-1; i >= 0; i--) {
+    const p = particles[i];
+    p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 80 * dt; p.life -= dt;
+    if (p.life <= 0) particles.splice(i,1);
+  }
+  if (shakeTimer > 0) { shakeTimer -= dt; shakeAmt = shakeTimer * 8; if (shakeTimer < 0) shakeTimer = 0; }
+
+  if (gs === state.CASTING) {
+    hookV += 0.3;
+    hookLineLen += hookV;
+    if (hookLineLen >= maxDepth * (0.6 + Math.random() * 0.4)) {
+      gs = state.WAITING;
+      waitTimer = 1 + Math.random() * 2;
+      hookV = 0;
+    }
+  }
+  if (gs === state.WAITING) {
+    waitTimer -= dt;
+    if (waitTimer <= 0) {
+      activeFish = getRarityRoll();
+      gs = state.BITING;
+      biteTimer = 1.2 + Math.random() * 0.8;
+      spawnParticles(W/2, maxDepth * 0.7, 8, '#aaddff');
+    }
+  }
+  if (gs === state.BITING) {
+    biteTimer -= dt;
+    hookLineLen += Math.sin(Date.now()*0.02) * 1.5;
+    if (biteTimer <= 0) {
+      gs = state.WAITING;
+      waitTimer = 1 + Math.random() * 3;
+      activeFish = null;
+    }
+  }
+  if (gs === state.REELING) {
+    hookLineLen -= reelPower * 0.3 * dt;
+    catchProgress -= activeFish.speed * 5 * dt;
+    if (catchProgress < 0) catchProgress = 0;
+    if (catchProgress >= reelRequired) {
+      gs = state.CAUGHT;
+      const w = activeFish.minW + Math.random() * (activeFish.maxW - activeFish.minW);
+      caughtFish = { ...activeFish, weight: Math.round(w*10)/10, value: Math.round(activeFish.value * (1+w/activeFish.maxW)) };
+      if (caughtFish.weight > bestCatch) { bestCatch = caughtFish.weight; saveData(); }
+      spawnParticles(W/2, 100, 20, '#ffd700');
+      shakeTimer = 0.3;
+      document.getElementById('ui').textContent = `${caughtFish.name} - ${caughtFish.weight}kg - ${caughtFish.value} coins [Click to collect]`;
+    }
+    if (hookLineLen <= 40) {
+      gs = state.CAUGHT;
+      caughtFish = null;
+      document.getElementById('ui').textContent = 'Lost it! [Click to continue]';
+    }
+  }
+}
+
+function render() {
+  ctx.clearRect(0, 0, W, H);
+  if (loaded < total) { ctx.fillStyle='#fff'; ctx.font='20px Arial'; ctx.textAlign='center'; ctx.fillText(`Loading... ${loaded}/${total}`,W/2,H/2); return; }
+
+  // Water background
+  ctx.save();
+  ctx.fillStyle = '#0a2a40';
+  ctx.fillRect(0, 0, W, H);
+  ctx.globalAlpha = 0.6;
+  const wOff = waterOffset % (images.water.width || 400);
+  for (let x = -wOff; x < W + 400; x += (images.water.width || 400)) {
+    for (let y = 0; y < H; y += (images.water.height || 400)) {
+      ctx.drawImage(images.water, x, y);
+    }
+  }
+  ctx.globalAlpha = 1;
+  ctx.restore();
+
+  // Fishing line
+  const lx = W/2 + (gs===state.IDLE||gs===state.SHOP ? (castX||W/2)-W/2 : 0);
+  ctx.strokeStyle = '#888';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(lx, 40);
+  if (gs === state.IDLE || gs === state.SHOP) {
+    ctx.lineTo(lx, 60);
+  } else {
+    const midY = 40 + hookLineLen * 0.6;
+    const bob = Math.sin(Date.now()*0.003) * 2;
+    ctx.quadraticCurveTo(lx + (gs===state.REELING?8:3), midY + bob, lx - (gs===state.REELING?5:0), 40 + hookLineLen);
+  }
+  ctx.stroke();
+
+  // Hook
+  if (gs !== state.IDLE && gs !== state.SHOP) {
+    const hx = lx - (gs===state.REELING?5:0);
+    const hy = 40 + hookLineLen;
+    ctx.save();
+    ctx.translate(hx, hy);
+    ctx.rotate(Math.sin(Date.now()*0.005)*0.3);
+    if (images.hook.complete && images.hook.naturalWidth > 0) {
+      ctx.drawImage(images.hook, -10, -5, 20, 30);
+    } else {
+      ctx.strokeStyle = '#aaa'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(0,10); ctx.stroke();
+      ctx.beginPath(); ctx.arc(0,14,4,Math.PI,0); ctx.stroke();
+    }
+    ctx.restore();
+
+    // Biting fish indicator
+    if (gs === state.BITING && activeFish) {
+      ctx.save();
+      ctx.globalAlpha = 0.5 + Math.sin(Date.now()*0.015)*0.3;
+      if (images[activeFish.img] && images[activeFish.img].complete) {
+        ctx.drawImage(images[activeFish.img], hx-30, hy+5, 60, 30);
+      }
+      ctx.restore();
+    }
+  }
+
+  // Boat
+  if (images.boat.complete && images.boat.naturalWidth > 0) {
+    ctx.drawImage(images.boat, W/2-60, 15, 120, 70);
+  }
+
+  // Shop overlay
+  if (gs === state.SHOP) {
+    ctx.fillStyle = 'rgba(0,0,0,0.8)'; ctx.fillRect(0,0,W,H);
+    ctx.fillStyle = '#ffd700'; ctx.font = 'bold 28px Arial'; ctx.textAlign = 'center';
+    ctx.fillText('SHOP', W/2, 50);
+    ctx.fillStyle = '#fff'; ctx.font = '18px Arial';
+    ctx.fillText(`Coins: ${coins}`, W/2, 80);
+
+    SHOP_ITEMS.forEach((item, i) => {
+      const x = 100 + i * 210, y = 130, lvl = upgrades[item.id]||0;
+      ctx.fillStyle = lvl >= item.max ? '#333' : '#1a3355';
+      ctx.fillRect(x, y, 190, 180);
+      ctx.strokeStyle = '#ffd700'; ctx.lineWidth = 2; ctx.strokeRect(x, y, 190, 180);
+
+      ctx.fillStyle = '#fff'; ctx.font = 'bold 18px Arial'; ctx.textAlign = 'center';
+      ctx.fillText(item.name, x+95, y+40);
+      ctx.font = '13px Arial'; ctx.fillStyle = '#aaa';
+      ctx.fillText(item.desc, x+95, y+65);
+      ctx.fillText(`Level: ${lvl}/${item.max}`, x+95, y+90);
+      if (lvl >= item.max) {
+        ctx.fillStyle = '#0f0'; ctx.fillText('MAX', x+95, y+130);
+      } else {
+        const cost = item.cost(lvl);
+        ctx.fillStyle = coins >= cost ? '#ffd700' : '#f44';
+        ctx.fillText(`${cost} coins`, x+95, y+130);
+      }
+      ctx.fillStyle = '#888'; ctx.font = '12px Arial';
+      ctx.fillText(`Click to buy`, x+95, y+155);
+    });
+  }
+
+  // Particles
+  particles.forEach(p => {
+    ctx.globalAlpha = p.life / p.maxLife;
+    ctx.fillStyle = p.color; ctx.fillRect(p.x-2, p.y-2, p.size, p.size);
+  });
+  ctx.globalAlpha = 1;
+
+  // Screen shake
+  if (shakeAmt > 0.5) {
+    const sx = (Math.random()-0.5)*shakeAmt, sy = (Math.random()-0.5)*shakeAmt;
+    canvas.style.transform = `translate(${sx}px,${sy}px)`;
+  } else { canvas.style.transform = ''; }
+
+  // Idle HUD
+  if (gs === state.IDLE) {
+    document.getElementById('ui').textContent = `Coins: ${coins} | Best: ${bestCatch}kg | Click to cast`;
+  }
+  if (gs === state.BITING) {
+    document.getElementById('ui').textContent = 'Click to hook!';
+  }
+  if (gs === state.REELING) {
+    const pct = Math.min(100, Math.round(catchProgress/reelRequired*100));
+    document.getElementById('ui').textContent = `Reeling... ${pct}% | Click fast!`;
+  }
+}
+
+canvas.addEventListener('click', e => {
+  if (gs === state.SHOP) {
+    const rect = canvas.getBoundingClientRect();
+    const mx = (e.clientX - rect.left) * (W/rect.width);
+    const my = (e.clientY - rect.top) * (H/rect.height);
+    SHOP_ITEMS.forEach((item, i) => {
+      const x = 100 + i * 210, y = 130;
+      if (mx >= x && mx <= x+190 && my >= y && my <= y+180) buy(item.id);
+    });
+  }
+});
+
+let lastTime = 0;
+function loop(t) {
+  const dt = Math.min(0.05, (t - lastTime) / 1000);
+  lastTime = t;
+  update(dt); render();
+  requestAnimationFrame(loop);
+}
+loop(0);
+</script>
+</body>
+</html>

@@ -1,0 +1,41 @@
+PROMPTS FOR AI IMAGE GENERATOR
+===============================
+Export all as PNG with TRANSPARENT background.
+Game art style: clean flat vector cartoon, bold outlines, vibrant colors, mobile game aesthetic.
+
+---
+
+1. BOAT (boat.png)
+"A cute small wooden fishing boat, isometric side-angle view, brown wood planks, blue trim, clean vector cartoon art style, vibrant flat colors, no background, game asset"
+
+2. WATER (water.png)
+"Top-down ocean water texture, deep blue with soft lighter blue wave ripples, seamless tileable game background, flat vector style, calm water, no hard edges"
+
+3. FISH 1 - Sardine (fish-1.png) ~COMMON~
+"A tiny cartoon sardine, side profile facing right, silvery light blue body, small blue dorsal fin, simple cute face, flat vector art, bold outlines, vibrant colors, no background, game asset"
+
+4. FISH 2 - Trout (fish-2.png) ~COMMON~
+"A cartoon trout, side profile facing right, olive green body with small red dots along its side, lighter belly, flat vector art, bold outlines, vibrant colors, no background, game asset"
+
+5. FISH 3 - Bass (fish-3.png) ~UNCOMMON~
+"A cartoon largemouth bass, side profile facing right, dark green body with a jagged black horizontal stripe, white belly, slightly open mouth, flat vector art, bold outlines, vibrant colors, no background, game asset"
+
+6. FISH 4 - Salmon (fish-4.png) ~RARE~
+"A cartoon salmon fish, side profile facing right, bright orange-pink body with silver head and tail, dynamic curved posture, flat vector art, bold outlines, vibrant colors, no background, game asset"
+
+7. FISH 5 - Pufferfish (fish-5.png) ~RARE~
+"A cute round cartoon pufferfish, fully inflated and spiky, facing right, bright yellow body with orange spikes, big round eyes, flat vector art, bold outlines, vibrant colors, no background, game asset"
+
+8. FISH 6 - Shark (fish-6.png) ~LEGENDARY~
+"A cool cartoon shark, side profile facing right, grey-blue body with white underbelly, small sharp teeth visible, sleek streamlined shape, flat vector art, bold outlines, vibrant colors, no background, game asset"
+
+9. HOOK (hook.png)
+"A simple metal silver fishing hook, curved J-shape with a barb at the tip, attached to a thin vertical line, clean flat vector style, no background, game asset"
+
+10. COIN (coin.png)
+"A shiny gold coin, circular, with a simple star or diamond symbol engraved in the center, flat vector cartoon style, bright golden yellow, no background, game asset"
+
+---
+FILE FORMAT: PNG
+BACKGROUND: Transparent (except water.png which is a tileable fill)
+STYLE: Flat vector cartoon, bold outlines, 2D game asset, consistent art style across ALL images
