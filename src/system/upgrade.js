@@ -145,7 +145,7 @@ export class UpgradeSystem {
                 damage: weaponDef.baseDamage,
                 cooldown: weaponDef.cooldown,
                 currentCooldown: 0,
-                projectileCount: 1,
+                projectileCount: weaponDef.projectileCount || 1,
                 pierce: weaponDef.pierce || 0,
                 size: weaponDef.size || 1,
                 speed: weaponDef.speed || 300,

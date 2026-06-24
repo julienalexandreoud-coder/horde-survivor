@@ -31,12 +31,12 @@ export const COLORS = {
 };
 
 export const PLAYER = {
-    radius: 16,
-    baseSpeed: 220,
+    radius: 18,
+    baseSpeed: 280,
     baseMaxHP: 100,
     baseRegen: 0,
-    invincibilityTime: 0.3,
-    pickupRange: 70,
+    invincibilityTime: 0.2,
+    pickupRange: 100,
     xpMagnetRange: 0,
     collisionDamage: 10,
 };
@@ -44,9 +44,9 @@ export const PLAYER = {
 export const ENEMY_TYPES = {
     basic: {
         name: 'basic',
-        radius: 14,
-        speed: 80,
-        hp: 20,
+        radius: 16,
+        speed: 130,
+        hp: 25,
         damage: 15,
         xp: 10,
         coins: 1,
@@ -55,9 +55,9 @@ export const ENEMY_TYPES = {
     },
     fast: {
         name: 'fast',
-        radius: 10,
-        speed: 170,
-        hp: 10,
+        radius: 12,
+        speed: 230,
+        hp: 12,
         damage: 10,
         xp: 15,
         coins: 2,
@@ -66,10 +66,10 @@ export const ENEMY_TYPES = {
     },
     tank: {
         name: 'tank',
-        radius: 22,
-        speed: 45,
-        hp: 80,
-        damage: 25,
+        radius: 26,
+        speed: 70,
+        hp: 120,
+        damage: 30,
         xp: 30,
         coins: 5,
         color: COLORS.enemy_tank,

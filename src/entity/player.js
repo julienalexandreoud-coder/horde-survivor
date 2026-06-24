@@ -3,13 +3,13 @@ import { PLAYER, COLORS } from '../constants.js';
 const DEFAULT_WEAPON = {
     id: 'magicBolt',
     level: 1,
-    damage: 15,
-    cooldown: 0.8,
+    damage: 20,
+    cooldown: 0.6,
     currentCooldown: 0,
     projectileCount: 1,
     pierce: 0,
     size: 1,
-    speed: 350,
+    speed: 400,
     duration: 1.5,
 };
 

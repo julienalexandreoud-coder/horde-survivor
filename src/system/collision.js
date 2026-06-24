@@ -195,6 +195,10 @@ export class CollisionSystem {
                         const killed = enemy.takeDamage(dmg);
                         stats.damageDealt += dmg;
 
+                        if (this.game.notifications) {
+                            this.game.notifications.addDamageNumber(enemy.x, enemy.y, dmg, projectile.color || '#ff0');
+                        }
+
                         if (typeof projectile.onHit === 'function') {
                             projectile.onHit();
                         }

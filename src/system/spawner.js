@@ -1,7 +1,7 @@
 import { ENEMY_TYPES, WAVE_DURATION, MAX_WAVES, BOSS_INTERVAL_WAVES } from '../constants.js';
 
-const MAX_ACTIVE_ENEMIES = 200;
-const BASE_SPAWN_RATE = 0.5;
+const MAX_ACTIVE_ENEMIES = 250;
+const BASE_SPAWN_RATE = 2.5;
 
 const WAVE_COMPOSITION = [
     { minWave: 1, types: ['basic'] },
@@ -120,15 +120,28 @@ export class Spawner {
     }
 
     _getEdgePosition(worldW, worldH) {
-        const margin = 30;
-        const side = Math.floor(Math.random() * 4);
+        const player = this.game.player;
+        if (!player) return { x: worldW / 2, y: worldH / 2 };
 
+        const viewW = 960;
+        const viewH = 540;
+        const margin = 50;
+
+        const cx = Math.max(viewW / 2, Math.min(worldW - viewW / 2, player.x));
+        const cy = Math.max(viewH / 2, Math.min(worldH - viewH / 2, player.y));
+
+        const left = cx - viewW / 2;
+        const right = cx + viewW / 2;
+        const top = cy - viewH / 2;
+        const bottom = cy + viewH / 2;
+
+        const side = Math.floor(Math.random() * 4);
         switch (side) {
-            case 0: return { x: margin + Math.random() * (worldW - margin * 2), y: margin };
-            case 1: return { x: margin + Math.random() * (worldW - margin * 2), y: worldH - margin };
-            case 2: return { x: margin, y: margin + Math.random() * (worldH - margin * 2) };
-            case 3: return { x: worldW - margin, y: margin + Math.random() * (worldH - margin * 2) };
-            default: return { x: worldW / 2, y: margin };
+            case 0: return { x: left + Math.random() * (right - left), y: top - margin };
+            case 1: return { x: left + Math.random() * (right - left), y: bottom + margin };
+            case 2: return { x: left - margin, y: top + Math.random() * (bottom - top) };
+            case 3: return { x: right + margin, y: top + Math.random() * (bottom - top) };
+            default: return { x: cx, y: top - margin };
         }
     }
 

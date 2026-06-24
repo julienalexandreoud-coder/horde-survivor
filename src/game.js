@@ -211,11 +211,11 @@ export class Game {
 
             if (def.type === 'projectile') {
                 for (let i = 0; i < weapon.projectileCount; i++) {
-                    const spread = (i - (weapon.projectileCount - 1) / 2) * 0.2;
+                    const spread = (i - (weapon.projectileCount - 1) / 2) * 0.25;
                     const angle = aim + spread;
                     const vx = Math.cos(angle) * weapon.speed;
                     const vy = Math.sin(angle) * weapon.speed;
-                    this.pool.spawnPlayerProjectile(px, py, vx, vy, dmg, 3 + weapon.size, def.color, pierce, weapon.duration);
+                    this.pool.spawnPlayerProjectile(px, py, vx, vy, dmg, 4 + weapon.size, def.color, pierce, weapon.duration);
                 }
                 weapon.currentCooldown = weapon.cooldown;
             } else if (def.type === 'aura') {
@@ -228,6 +228,7 @@ export class Game {
                     if (dist < radius + enemy.radius) {
                         const killed = enemy.takeDamage(dmg);
                         this.stats.damageDealt += dmg;
+                        this.notifications.addDamageNumber(enemy.x, enemy.y, dmg, def.color);
                         if (killed) { this.stats.kills++; this._spawnPickupsForEnemy(enemy); }
                     }
                 }
@@ -248,7 +249,8 @@ export class Game {
                     }
                     if (!nearest) break;
                     chained.add(nearest);
-                    this.effects.addParticles(nearest.x, nearest.y, def.color, 5, 60, 0.3);
+                    this.effects.addParticles(nearest.x, nearest.y, def.color, 8, 80, 0.4);
+                    this.notifications.addDamageNumber(nearest.x, nearest.y, dmg, def.color);
                     const killed = nearest.takeDamage(dmg);
                     this.stats.damageDealt += dmg;
                     if (killed) { this.stats.kills++; this._spawnPickupsForEnemy(nearest); }
@@ -525,21 +527,26 @@ export class Game {
 
     _renderEnemy(e) {
         const ctx = this.renderer.ctx;
+        ctx.save();
+        ctx.shadowColor = e.color;
+        ctx.shadowBlur = 8;
         ctx.beginPath();
         ctx.arc(e.x, e.y, e.radius, 0, Math.PI * 2);
         ctx.fillStyle = e.color;
         ctx.fill();
+        ctx.shadowBlur = 0;
         ctx.strokeStyle = e.strokeColor;
-        ctx.lineWidth = 1.5;
+        ctx.lineWidth = 2;
         ctx.stroke();
+        ctx.restore();
         if (e.attackRange) {
             const hpPct = e.hp / e.maxHp;
             const barW = e.radius * 2;
             const barH = 3;
             ctx.fillStyle = '#333';
-            ctx.fillRect(e.x - barW / 2, e.y - e.radius - 6, barW, barH);
+            ctx.fillRect(e.x - barW / 2, e.y - e.radius - 8, barW, barH);
             ctx.fillStyle = hpPct > 0.5 ? '#0f0' : hpPct > 0.25 ? '#ff0' : '#f00';
-            ctx.fillRect(e.x - barW / 2, e.y - e.radius - 6, barW * hpPct, barH);
+            ctx.fillRect(e.x - barW / 2, e.y - e.radius - 8, barW * hpPct, barH);
         }
     }
 

@@ -78,7 +78,7 @@ export class EffectsSystem {
 
     deathEffect(x, y, color) {
         const c = color || '#ff4466';
-        for (let i = 0; i < 12; i++) {
+        for (let i = 0; i < 18; i++) {
             if (this.particles.length >= MAX_PARTICLES) break;
 
             const angle = Math.random() * Math.PI * 2;
